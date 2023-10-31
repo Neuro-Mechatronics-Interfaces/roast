@@ -81,9 +81,9 @@ end
 
 if strcmpi(subj,'nyhead')
     subj = 'example/nyhead.nii';
-end
-
-if ~strcmpi(subj,'example/nyhead.nii') && ~exist(subj,'file')
+elseif strcmpi(subj, 'forrest')
+    subj = 'example/forrest.nii';
+elseif ~exist(subj,'file')
     error(['The subject MRI you provided ' subj ' does not exist.']);
 end
 
@@ -603,7 +603,7 @@ if length(conductivities.electrode(:))==1
 end
 
 % preprocess MRI data
-if ~strcmpi(subj,'example/nyhead.nii') % only when it's not NY head
+if ~strcmpi(subj,'example/nyhead.nii') && ~strcmpi(subj, 'example/forrest.nii') % only when it's not NY head
     
     t1Data = load_untouch_nii(subj);
     if t1Data.hdr.hist.qoffset_x == 0 && t1Data.hdr.hist.srow_x(4)==0
@@ -638,34 +638,51 @@ if ~strcmpi(subj,'example/nyhead.nii') % only when it's not NY head
     % check if T2 is aligned with T1
     
 else
-    
-    if ~exist('example/nyhead_T1orT2_masks.nii','file')
-        unzip('example/nyhead_T1orT2_masks.nii.zip','example')
-    end
-    
-    isNonRAS = 0; % New York head is in RAS
-    
-    if doResamp
-        error('The beauty of New York head is its 0.5 mm resolution. It''s a bad practice to resample it into 1 mm. Use another head ''example/MNI152_T1_1mm.nii'' for 1 mm model.');
-    end
-    
-    if paddingAmt>0
-        zeroPadding('example/nyhead_T1orT2_masks.nii',paddingAmt);
-        subjRasRSPD = ['example/nyhead_padded' num2str(paddingAmt) '.nii'];
-        if ~exist(['example/nyhead_padded' num2str(paddingAmt) '_T1orT2_seg8.mat'],'file')
-            load('example/nyhead_T1orT2_seg8.mat','image','tpm','Affine');
-            origin = inv(image.mat)*[0;0;0;1];
-            origin = origin(1:3) + paddingAmt;
-            image.mat(1:3,4) = [-dot(origin,image.mat(1,1:3));-dot(origin,image.mat(2,1:3));-dot(origin,image.mat(3,1:3))];
-            save(['example/nyhead_padded' num2str(paddingAmt) '_T1orT2_seg8.mat'],'image','tpm','Affine');
+    if strcmpi(subj, 'example/nyhead.nii')
+        if ~exist('example/nyhead_T1orT2_masks.nii','file')
+            unzip('example/nyhead_T1orT2_masks.nii.zip','example')
+        end
+        
+        isNonRAS = 0; % New York head is in RAS
+        
+        if doResamp
+            error('The beauty of New York head is its 0.5 mm resolution. It''s a bad practice to resample it into 1 mm. Use another head ''example/MNI152_T1_1mm.nii'' for 1 mm model.');
+        end
+        
+        if paddingAmt>0
+            zeroPadding('example/nyhead_T1orT2_masks.nii',paddingAmt);
+            subjRasRSPD = ['example/nyhead_padded' num2str(paddingAmt) '.nii'];
+            if ~exist(['example/nyhead_padded' num2str(paddingAmt) '_T1orT2_seg8.mat'],'file')
+                load('example/nyhead_T1orT2_seg8.mat','image','tpm','Affine');
+                origin = inv(image.mat)*[0;0;0;1];
+                origin = origin(1:3) + paddingAmt;
+                image.mat(1:3,4) = [-dot(origin,image.mat(1,1:3));-dot(origin,image.mat(2,1:3));-dot(origin,image.mat(3,1:3))];
+                save(['example/nyhead_padded' num2str(paddingAmt) '_T1orT2_seg8.mat'],'image','tpm','Affine');
+            end
+        else
+            subjRasRSPD = subj;
+        end
+        
+        if ~isempty(T2)
+           warning('New York head selected. Any specified T2 image will be ignored.');
+           T2 = [];
         end
     else
-        subjRasRSPD = subj;
-    end
-    
-    if ~isempty(T2)
-       warning('New York head selected. Any specified T2 image will be ignored.');
-       T2 = [];
+        isNonRAS = 0;
+        if paddingAmt>0
+            zeroPadding('example/forrest.nii',paddingAmt);
+            subjRasRSPD = ['example/forrest_padded' num2str(paddingAmt) '.nii'];
+            if ~exist(['example/forrest_padded' num2str(paddingAmt) '_T1orT2_seg8.mat'],'file')
+                load('example/forrest_T1orT2_seg8.mat','image','tpm','Affine');
+                origin = inv(image.mat)*[0;0;0;1];
+                origin = origin(1:3) + paddingAmt;
+                image.mat(1:3,4) = [-dot(origin,image.mat(1,1:3));-dot(origin,image.mat(2,1:3));-dot(origin,image.mat(3,1:3))];
+                save(['example/forrest_padded' num2str(paddingAmt) '_T1orT2_seg8.mat'],'image','tpm','Affine');
+            end
+        else
+            subjRasRSPD = subj;
+        end
+        T2 = [];
     end
         
 end
@@ -739,10 +756,12 @@ uniqueTag = options.uniqueTag;
 
 fprintf('\n');
 disp('======================================================')
-if ~strcmp(baseFilename,'nyhead')
-    disp(['ROAST ' subj])
-else
+if strcmp(baseFilename,'nyhead')
     disp('ROAST New York head')
+elseif strcmp(baseFilename, 'forrest')
+    disp('ROAST Forrest NHP head');
+else
+    disp(['ROAST ' subj])
 end
 disp('USING RECIPE:')
 disp(configTxt)
@@ -771,7 +790,7 @@ if all(strcmpi(recipe,'leadfield'))
     end
 end
 
-if ~strcmp(baseFilename,'nyhead')
+if ~(strcmp(baseFilename,'nyhead') || strcmp(baseFilename, 'forrest'))
     
     [~,baseFilenameRasRSPD] = fileparts(subjRasRSPD);
     
@@ -802,9 +821,9 @@ if ~strcmp(baseFilename,'nyhead')
 else
     
     disp('======================================================')
-    disp(' NEW YORK HEAD SELECTED, GOING TO STEP 3 DIRECTLY...  ')
+    disp(' PRE-SEGMENTED SELECTED, GOING TO STEP 3 DIRECTLY...  ')
     disp('======================================================')
-    warning('New York head is a 0.5 mm model so is more computationally expensive. Make sure you have a decent machine (>50GB memory) to run ROAST with New York head.')
+%     warning('New York head is a 0.5 mm model so is more computationally expensive. Make sure you have a decent machine (>50GB memory) to run ROAST with New York head.')
     [~,baseFilenameRasRSPD] = fileparts(subjRasRSPD);
     
 end
