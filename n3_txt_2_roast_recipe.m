@@ -1,4 +1,4 @@
-function [recipe, params, I_tot] = n3_txt_2_roast_recipe(txt_file, amp_scale, options)
+function [recipe, params, I_tot, stim_current] = n3_txt_2_roast_recipe(txt_file, amp_scale, options)
 %N3_TXT_2_ROAST_RECIPE  Get N3 currents and plug into "recipe" for roast
 %
 % Syntax:
@@ -27,14 +27,17 @@ arguments
     txt_file {mustBeTextScalar, mustBeFile}
     amp_scale (1,1) double {mustBeInRange(amp_scale, 0, 1)};
     options.NumArrayElectrodes (1,1) double = 64;
-    options.ArrayElectrodeSize (1,:) double = []; % [innerRadius outerRadius height] units are mm
-    options.DistantElectrodeSize (1,:) double = []; % [radius height] units are mm
+    options.ArrayElectrodeSize (1,2) double = [0.6 0.4]; % [radius height] units are mm
+    options.DistantElectrodeSize (1,2) double = [6 2]; % [radius height] units are mm
 end
 
 n_elec = options.NumArrayElectrodes + 1; % Add 1 for "distant return" electrode.
 stim_current = zeros(n_elec,1);
 [el,I] = readPatternFile(txt_file);
 stim_current(el) = I .* amp_scale .* 1e3; % Convert to mA
+if abs(sum(stim_current)) > 0
+    stim_current(end) = stim_current(end) - sum(stim_current);
+end
 recipe = cell(1, 2*numel(stim_current));
 for ii = 1:n_elec
     recipe{1,2*ii-1} = sprintf('custom%d', ii);
@@ -44,7 +47,7 @@ I_tot = sum(stim_current(stim_current > 0));
 
 params = cell(1,5);
 params{1} = 'elecType';
-params{2} = [repmat({'ring'}, 1, options.NumArrayElectrodes), {'disc'}];
+params{2} = repmat({'disc'}, 1, n_elec);
 params{3} = 'elecSize';
 params{4} = [repmat({options.ArrayElectrodeSize},1,options.NumArrayElectrodes), {options.DistantElectrodeSize}];
 params{5} = 'conductivities';
