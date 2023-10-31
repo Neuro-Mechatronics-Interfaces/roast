@@ -129,9 +129,16 @@ while indArg <= length(varargin)
         case 'conductivities'
             conductivities = varargin{indArg+1};
             indArg = indArg+2;
+        case 'voxsize'
+            voxSize
+            indArg = indArg+2;
         otherwise
-            error('Supported options are: ''capType'', ''elecType'', ''elecSize'', ''elecOri'', ''T2'', ''meshOptions'', ''conductivities'', ''simulationTag'', ''resampling'', and ''zeroPadding''.');
+            error('Supported options are: ''voxSize'', ''capType'', ''elecType'', ''elecSize'', ''elecOri'', ''T2'', ''meshOptions'', ''conductivities'', ''simulationTag'', ''resampling'', and ''zeroPadding''.');
     end
+end
+
+if ~exist('voxSize','var')
+    voxSize = [1.0 1.0 1.0]; % If resample is true, default voxel size to resample to is 1.0-mm isotropic resolution.
 end
 
 if any(~strcmpi(recipe,'leadfield'))
@@ -624,7 +631,8 @@ if ~strcmpi(subj,'example/nyhead.nii') && ~strcmpi(subj, 'example/forrest.nii') 
     [subjRas,isNonRAS] = convertToRAS(subj);
     % check if in non-RAS orientation, and if yes, put it into RAS
     
-    [subjRasRS,doResamp] = resampToOneMM(subjRas,doResamp);    
+%     [subjRasRS,doResamp] = resampToOneMM(subjRas,doResamp);    
+    [subjRasRS,doResamp] = resampMesh(subjRas,doResamp,voxSize);
     
     if paddingAmt>0
         subjRasRSPD = zeroPadding(subjRasRS,paddingAmt);
