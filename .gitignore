@@ -6,3 +6,5 @@ example/forrest_customLocations
 example/forrest_T1orT2_seg8.mat
 
 example/forrest.nii
+
+*.asv
