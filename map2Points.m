@@ -11,8 +11,8 @@ function [dist,indexOnGoalPoints]= map2Points(inputPoints,goalPoints,criterion,n
 % yhuang16@citymail.cuny.edu
 % April 2018
 
-inputPoints = single(inputPoints);
-goalPoints = single(goalPoints);
+inputPoints = int16(inputPoints);
+goalPoints = int16(goalPoints);
 
 N_inputPoints = size(inputPoints,1);
 N_goalPoints = size(goalPoints,1);
@@ -25,34 +25,30 @@ if N_dim_input ~= N_dim_goal
     error('You cannot map points that are in spaces of different dimensions!')
 end
 
-temp = reshape(inputPoints',1,N_dim_input,N_inputPoints);
-
-temp1 = repmat(temp,[N_goalPoints 1 1]);
+temp1 = repmat(reshape(inputPoints',1,N_dim_input,N_inputPoints),[N_goalPoints 1 1]);
 
 temp2 = repmat(goalPoints,[1 1 N_inputPoints]);
 
-dist = sqrt(sum((temp1 - temp2).^2,2));
+dist = squeeze(sqrt(sum((temp1 - temp2).^2,2)));
 
-dist = squeeze(dist);
-
-[dist_sorted,ind_sortedDist] = sort(dist);
+[dist,ind_sortedDist] = sort(dist);
 
 switch criterion
     case 'closest'
-        dist = dist_sorted(1,:);
+        dist = dist(1,:);
         indexOnGoalPoints = ind_sortedDist(1,:);
     case 'farthest'
-        dist = dist_sorted(end,:);
+        dist = dist(end,:);
         indexOnGoalPoints = ind_sortedDist(end,:);
     case 'closer'
         if isempty(numOfPts), error('You want to map to the first XX closest points, please specify XX in the 4th argument.'); end
         if numOfPts>N_goalPoints, error('Number of points exceed size of goal point cloud.'); end
-        dist = dist_sorted(1:numOfPts,:);
+        dist = dist(1:numOfPts,:);
         indexOnGoalPoints = ind_sortedDist(1:numOfPts,:);
     case 'farther'
         if isempty(numOfPts), error('You want to map to the first XX farthest points, please specify XX in the 4th argument.'); end
         if numOfPts>N_goalPoints, error('Number of points exceed size of goal point cloud.'); end
-        dist = dist_sorted(end-numOfPts+1:end,:);
+        dist = dist(end-numOfPts+1:end,:);
         indexOnGoalPoints = ind_sortedDist(end-numOfPts+1:end,:);
     otherwise
         error('Please specify either closest, farthest, closer or farther as the mapping criterion.');

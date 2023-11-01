@@ -1,15 +1,9 @@
+example/forrest*
+
 example/*_roastOptions.mat
 
 example/*_roastLog
 
-example/nyhead_T1orT2_masks.nii/
-
-example/forrest_T1orT2_masks.nii
-
-example/forrest_customLocations
-
-example/forrest_T1orT2_seg8.mat
-
-example/forrest.nii
+example/nyhead*
 
 *.asv

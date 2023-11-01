@@ -130,7 +130,7 @@ while indArg <= length(varargin)
             conductivities = varargin{indArg+1};
             indArg = indArg+2;
         case 'voxsize'
-            voxSize
+            voxSize = varargin{indArg+1};
             indArg = indArg+2;
         otherwise
             error('Supported options are: ''voxSize'', ''capType'', ''elecType'', ''elecSize'', ''elecOri'', ''T2'', ''meshOptions'', ''conductivities'', ''simulationTag'', ''resampling'', and ''zeroPadding''.');

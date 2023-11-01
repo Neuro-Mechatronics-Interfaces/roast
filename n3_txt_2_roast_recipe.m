@@ -27,8 +27,8 @@ arguments
     txt_file {mustBeTextScalar, mustBeFile}
     amp_scale (1,1) double {mustBeInRange(amp_scale, 0, 1)};
     options.NumArrayElectrodes (1,1) double = 64;
-    options.ArrayElectrodeSize (1,2) double = [0.6 0.4]; % [radius height] units are mm
-    options.DistantElectrodeSize (1,2) double = [6 2]; % [radius height] units are mm
+    options.ArrayElectrodeSize (1,2) double = [0.5 0.1]; % [radius height] units are mm
+    options.DistantElectrodeSize (1,2) double = [9 0.1]; % [radius height] units are mm
 end
 
 n_elec = options.NumArrayElectrodes + 1; % Add 1 for "distant return" electrode.
@@ -58,6 +58,7 @@ params{6} = struct('white', 0.126, 'gray', 0.3003, 'csf', 1.7921, 'bone', 0.006,
 params{7} = 'simulationTag';
 [~,pattern_tag,~] = fileparts(txt_file);
 amp_tag = round(amp_scale * 1e2);
-params{8} = sprintf('%s__%d',pattern_tag,amp_tag);
+st = strrep(strrep(string(datetime('now')), ' ', 'T'),':','-');
+params{8} = sprintf('%s_%d__%s',pattern_tag,amp_tag,st);
 
 end
