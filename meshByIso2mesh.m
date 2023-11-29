@@ -19,16 +19,23 @@ end
 
 mappingFile = [dirname filesep baseFilenameRasRSPD '_seg8.mat'];
 if ~exist(mappingFile,'file')
-    error(['Mapping file ' mappingFile ' from SPM not found. Please check if you run through SPM segmentation in ROAST.']);
+    if contains(baseFilenameRasRSPD, 'forrest')
+        data = load_untouch_nii([dirname filesep baseFilenameRasRSPD '_masks.nii']);
+        allMask = uint8(data.img);
+        allMaskShow = uint8(data.img);
+        mri2mni = [data.hdr.hist.srow_x; data.hdr.hist.srow_y; data.hdr.hist.srow_z; 0 0 0 1];
+    else
+        error(['Mapping file ' mappingFile ' from SPM not found. Please check if you run through SPM segmentation in ROAST.']);
+    end
 else
     load(mappingFile,'image','Affine');
     mri2mni = Affine*image(1).mat;
+    data = load_untouch_nii([dirname filesep baseFilenameRasRSPD '_masks.nii']);
+    allMask = data.img;
+    allMaskShow = data.img;
     % mapping from MRI voxel space to MNI space
 end
 
-data = load_untouch_nii([dirname filesep baseFilenameRasRSPD '_masks.nii']);
-allMask = data.img;
-allMaskShow = data.img;
 numOfTissue = 6; % hard coded across ROAST.  max(allMask(:));
 % data = load_untouch_nii([dirname filesep baseFilename '_' uniTag '_mask_gel.nii']);
 % allMask(data.img==255) = 7;

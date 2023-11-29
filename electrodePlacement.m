@@ -1,4 +1,4 @@
-function hdrInfo = electrodePlacement(P1,P2,T2,elecNeeded,options,uniTag)
+function hdrInfo = electrodePlacement(P1,P2,T2,elecNeeded,opt,uniTag)
 % hdrInfo = electrodePlacement(P1,P2,T2,elecNeeded,options,uniTag)
 %
 % Place electrodes on the scalp surface. options.elecPara contains all the options
@@ -17,7 +17,7 @@ else
     baseFilenameRasRSPD = [baseFilenameRasRSPD '_T1andT2'];
 end
 
-elecPara = options.elecPara;
+elecPara = opt.elecPara;
 
 indP = elecPara(1).indP;
 indN = elecPara(1).indN;
@@ -46,24 +46,24 @@ if ~isempty(indP) || ~isempty(indN)
 end
 
 if ~isempty(indC)
-    fid = fopen([dirname filesep baseFilename '_customLocations']);
+    fid = fopen([dirname filesep baseFilename '_' opt.customElectrodesTag]);
     capInfo_C = textscan(fid,'%s %f %f %f');
     fclose(fid);
     elecLoc_C = cell2mat(capInfo_C(2:4));
     % update customized elec coords according to options of isNonRAS, resamp, and zeroPad
-    if options.isNonRAS
+    if opt.isNonRAS
         [elecLoc_C,perm] = convertToRASpointCloud(P1,elecLoc_C);
     else
         perm = [1 2 3];
     end
-    if options.resamp
+    if opt.resamp
         data = load_untouch_nii(P1);
         temp = data.hdr.dime.pixdim(2:4);
         temp = temp(perm);
         elecLoc_C = elecLoc_C.*repmat(temp,size(elecLoc_C,1),1);
     end
-    if options.zeroPad>0
-        elecLoc_C = elecLoc_C + options.zeroPad;
+    if opt.zeroPad>0
+        elecLoc_C = elecLoc_C + opt.zeroPad;
     end
     
     elecLoc_C = elecLoc_C(indC,:);
@@ -186,7 +186,7 @@ disp('final clean-up...')
 volume_elec = volume_elec_C>0;
 volume_gel = volume_gel_C>0;
 volume_gel = xor(volume_gel,volume_gel & volume_elec); % remove the gel that overlaps with the electrode
-for i=1:6
+for i=1:5
     volume_tissue = template.img==i;
     volume_gel = xor(volume_gel,volume_gel & volume_tissue);
 end % remove the gel that goes into other tissue masks

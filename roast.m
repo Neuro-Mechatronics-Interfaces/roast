@@ -1,6 +1,28 @@
-function roast(subj,recipe,varargin)
-% roast(subj,recipe,varargin)
+function roast(subj,recipe,options)
+%ROAST - roast(subj,recipe) - Main function of ROAST.
 %
+% Syntax:
+%   ROAST(subj,recipe,'Name',value,...)
+%
+% Inputs:
+%     subj {mustBeTextScalar} = 'example/MNI152_T1_1mm.nii';
+%     recipe (1,:) cell = {'Fp1',1,'P4',-1};
+%     options.capType {mustBeMember(options.capType, {'1020','1010','1005','biosemi','egi'})} = '1010';
+%     options.elecType = [];
+%     options.elecSize = [];
+%     options.elecOri = 'lr'; % Can be 'lr', 'ap', 'si', or (1,3) vector giving precise vector of long axis
+%     options.T2 = [];
+%     options.meshOptions (1,1) struct = struct('radbound',5,'angbound',30,'distbound',0.3,'reratio',3,'maxvol',10);
+%     options.simulationTag {mustBeTextScalar} = ""
+%     options.resampling (1,1) double {mustBeMember(options.resampling,[0,1])} = 0
+%     options.zeroPadding (1,1) double {mustBeInteger} = 0
+%     options.conductivities (1,1) struct = struct('white', 0.126, 'gray', 0.276, 'csf', 1.65, 'bone', 0.01, 'skin', 0.465, 'air', 2.5e-14, 'gel', 0.3, 'electrode', 5.9e7);
+%     options.voxSize (1,3) double = [1.0 1.0 1.0];
+%     options.suppressMeshParameterWarning (1,1) logical = false;
+%     options.suppressConductivityParameterWarning (1,1) logical = false;
+%     options.customElectrodesTag (1,:) char = 'customLocations';
+%
+% Description:
 % Main function of ROAST.
 % 
 % Please refer to the README.md on the github repo for better formated
@@ -57,6 +79,25 @@ function roast(subj,recipe,varargin)
 % yhuang16@citymail.cuny.edu
 % September 2019
 
+arguments
+    subj {mustBeTextScalar} = 'example/MNI152_T1_1mm.nii';
+    recipe (1,:) cell = {'Fp1',1,'P4',-1};
+    options.capType {mustBeMember(options.capType, {'1020','1010','1005','biosemi','egi'})} = '1010';
+    options.elecType = [];
+    options.elecSize = [];
+    options.elecOri = 'lr'; % Can be 'lr', 'ap', 'si', or (1,3) vector giving precise vector of long axis
+    options.T2 = [];
+    options.meshOptions (1,1) struct = struct('radbound',5,'angbound',30,'distbound',0.3,'reratio',3,'maxvol',10);
+    options.simulationTag {mustBeTextScalar} = ""
+    options.resampling (1,1) double {mustBeMember(options.resampling,[0,1])} = 0
+    options.zeroPadding (1,1) double {mustBeInteger} = 0
+    options.conductivities (1,1) struct = struct('white', 0.126, 'gray', 0.276, 'csf', 1.65, 'bone', 0.01, 'skin', 0.465, 'air', 2.5e-14, 'gel', 0.3, 'electrode', 5.9e7);
+    options.voxSize (1,3) double = [1.0 1.0 1.0];
+    options.suppressMeshParameterWarning (1,1) logical = false;
+    options.suppressConductivityParameterWarning (1,1) logical = false;
+    options.customElectrodesTag (1,:) char = 'customLocations';
+end
+
 fprintf('\n\n');
 disp('=============================================================')
 disp('ROAST is an aggregated work by Yu (Andy) Huang licensed under')
@@ -72,8 +113,6 @@ disp('CHECKING INPUTS...')
 disp('======================================================')
 fprintf('\n');
 
-% warning('on');
-
 % check subject name
 if nargin<1 || isempty(subj)
     subj = 'example/MNI152_T1_1mm.nii';
@@ -83,534 +122,56 @@ if strcmpi(subj,'nyhead')
     subj = 'example/nyhead.nii';
 elseif strcmpi(subj, 'forrest')
     subj = 'example/forrest.nii';
+elseif strcmpi(subj, 'forrestLarge')
+    subj = 'example/forrestLarge.nii';
 elseif ~exist(subj,'file')
-    error(['The subject MRI you provided ' subj ' does not exist.']);
+    error('The subject MRI you provided ("%s") does not exist.', subj);
 end
 
-if nargin<2 || isempty(recipe)
-    recipe = {'Fp1',1,'P4',-1};
-end
-
-% take in user-specified options
-if mod(length(varargin),2)~=0
-    error('Unrecognized format of options. Please enter as property-value pair.');
-end
-
-indArg = 1;
-while indArg <= length(varargin)
-    switch lower(varargin{indArg})
-        case 'captype'
-            capType = varargin{indArg+1};
-            indArg = indArg+2;
-        case 'electype'
-            elecType = varargin{indArg+1};
-            indArg = indArg+2;
-        case 'elecsize'
-            elecSize = varargin{indArg+1};
-            indArg = indArg+2;
-        case 'elecori'
-            elecOri = varargin{indArg+1};
-            indArg = indArg+2;
-        case 't2'
-            T2 = varargin{indArg+1};
-            indArg = indArg+2;
-        case 'meshoptions'
-            meshOpt = varargin{indArg+1};
-            indArg = indArg+2;
-        case 'simulationtag'
-            simTag = varargin{indArg+1};
-            indArg = indArg+2;
-        case 'resampling'
-            doResamp = varargin{indArg+1};
-            indArg = indArg+2;
-        case 'zeropadding'
-            paddingAmt = varargin{indArg+1};
-            indArg = indArg+2;
-        case 'conductivities'
-            conductivities = varargin{indArg+1};
-            indArg = indArg+2;
-        case 'voxsize'
-            voxSize = varargin{indArg+1};
-            indArg = indArg+2;
-        otherwise
-            error('Supported options are: ''voxSize'', ''capType'', ''elecType'', ''elecSize'', ''elecOri'', ''T2'', ''meshOptions'', ''conductivities'', ''simulationTag'', ''resampling'', and ''zeroPadding''.');
-    end
-end
-
-if ~exist('voxSize','var')
-    voxSize = [1.0 1.0 1.0]; % If resample is true, default voxel size to resample to is 1.0-mm isotropic resolution.
-end
-
-if any(~strcmpi(recipe,'leadfield'))
-    
-    % check recipe syntax
-    if mod(length(recipe),2)~=0
-        error('Unrecognized format of your recipe. Please enter as electrodeName-injectedCurrent pair.');
-    end
-    
-    elecName = (recipe(1:2:end-1))';
-    injectCurrent = (cell2mat(recipe(2:2:end)))';
-    if abs(sum(injectCurrent))>eps
-        error('Electric currents going in and out of the head not balanced. Please make sure they sum to 0.');
-    end
-    
-    % set up defaults and check on option conflicts
-    if ~exist('capType','var')
-        capType = '1010';
-    else
-        if ~any(strcmpi(capType,{'1020','1010','1005','biosemi','egi'}))
-            error('Supported cap types are: ''1020'', ''1010'', ''1005'', ''BioSemi'' and ''EGI''.');
-        end
-    end
-    
-    if ~exist('elecType','var')
-        elecType = 'disc';
-    else
-        if ~iscellstr(elecType)
-            if ~any(strcmpi(elecType,{'disc','pad','ring'}))
-                error('Supported electrodes are: ''disc'', ''pad'' and ''ring''.');
-            end
-        else
-            if length(elecType)~=length(elecName)
-                error('You want to place more than 1 type of electrodes, but did not tell ROAST which type for each electrode. Please provide the type for each electrode respectively, as the value for option ''elecType'', in a cell array of length equals to the number of electrodes to be placed.');
-            end
-            for i=1:length(elecType)
-                if ~any(strcmpi(elecType{i},{'disc','pad','ring'}))
-                    error('Supported electrodes are: ''disc'', ''pad'' and ''ring''.');
-                end
-            end
-        end
-    end
-    
-    if ~exist('elecSize','var')
-        if ~iscellstr(elecType)
-            switch lower(elecType)
-                case {'disc'}
-                    elecSize = [6 2];
-                case {'pad'}
-                    elecSize = [50 30 3];
-                case {'ring'}
-                    elecSize = [4 6 2];
-            end
-        else
-            elecSize = cell(1,length(elecType));
-            for i=1:length(elecSize)
-                switch lower(elecType{i})
-                    case {'disc'}
-                        elecSize{i} = [6 2];
-                    case {'pad'}
-                        elecSize{i} = [50 30 3];
-                    case {'ring'}
-                        elecSize{i} = [4 6 2];
-                end
-            end
-        end
-    else
-        if ~iscellstr(elecType)
-            if iscell(elecSize)
-                warning('Looks like you''re placing only 1 type of electrodes. ROAST will only use the 1st entry of the cell array of ''elecSize''. If this is not what you want and you meant differect sizes for different electrodes of the same type, just enter ''elecSize'' option as an N-by-2 or N-by-3 matrix, where N is number of electrodes to be placed.');
-                elecSize = elecSize{1};
-            end
-            if any(elecSize(:)<=0)
-                error('Please enter non-negative values for electrode size.');
-            end
-            if size(elecSize,2)~=2 && size(elecSize,2)~=3
-                error('Unrecognized electrode sizes. Please specify as [radius height] for disc, [length width height] for pad, and [innerRadius outterRadius height] for ring electrode.');
-            end
-            if size(elecSize,1)>1 && size(elecSize,1)~=length(elecName)
-                error('You want different sizes for each electrode. Please tell ROAST the size for each electrode respectively, in a N-row matrix, where N is the number of electrodes to be placed.');
-            end
-            if strcmpi(elecType,'disc') && size(elecSize,2)==3
-                error('Redundant size info for Disc electrodes. Please enter as [radius height]');
-                %             elecSize = elecSize(:,1:2);
-            end
-            if any(strcmpi(elecType,{'pad','ring'})) && size(elecSize,2)==2
-                error('Insufficient size info for Pad or Ring electrodes. Please specify as [length width height] for pad, and [innerRadius outterRadius height] for ring electrode.');
-            end
-            if strcmpi(elecType,'pad') && any(elecSize(:,1) < elecSize(:,2))
-                error('For Pad electrodes, the width of the pad should not be bigger than its length. Please enter as [length width height]');
-            end
-            if strcmpi(elecType,'pad') && any(elecSize(:,3) < 3)
-                error('For Pad electrodes, the thickness should at least be 3 mm.');
-            end
-            if strcmpi(elecType,'pad') && any(elecSize(:) > 80)
-                warning('You''re placing large pad electrodes (one of its dimensions is bigger than 8 cm). For large pads, the size will not be exact in the model because they will be bent to fit the scalp surface.');
-            end
-            if strcmpi(elecType,'ring') && any(elecSize(:,1) >= elecSize(:,2))
-                error('For Ring electrodes, the inner radius should be smaller than outter radius. Please enter as [innerRadius outterRadius height]');
-            end
-        else
-            if ~iscell(elecSize)
-                error('You want to place at least 2 types of electrodes, but only provided size info for 1 type. Please provide complete size info for all types of electrodes in a cell array as the value for option ''elecSize'', or just use defaults by not specifying ''elecSize'' option.');
-            end
-            if length(elecSize)~=length(elecType)
-                error('You want to place more than 1 type of electrodes. Please tell ROAST the size for each electrode respectively, as the value for option ''elecSize'', in a cell array of length equals to the number of electrodes to be placed.');
-            end
-            for i=1:length(elecSize)
-                if isempty(elecSize{i})
-                    switch lower(elecType{i})
-                        case {'disc'}
-                            elecSize{i} = [6 2];
-                        case {'pad'}
-                            elecSize{i} = [50 30 3];
-                        case {'ring'}
-                            elecSize{i} = [4 6 2];
-                    end
-                else
-                    if any(elecSize{i}(:)<=0)
-                        error('Please enter non-negative values for electrode size.');
-                    end
-                    if size(elecSize{i},2)~=2 && size(elecSize{i},2)~=3
-                        error('Unrecognized electrode sizes. Please specify as [radius height] for disc, [length width height] for pad, and [innerRadius outterRadius height] for ring electrode.');
-                    end
-                    if size(elecSize{i},1)>1
-                        error('You''re placing more than 1 type of electrodes. Please put size info for each electrode as a 1-row vector in a cell array for option ''elecSize''.');
-                    end
-                    if strcmpi(elecType{i},'disc') && size(elecSize{i},2)==3
-                        error('Redundant size info for Disc electrodes. Please enter as [radius height]');
-                        %                     elecSize{i} = elecSize{i}(:,1:2);
-                    end
-                    if any(strcmpi(elecType{i},{'pad','ring'})) && size(elecSize{i},2)==2
-                        error('Insufficient size info for Pad or Ring electrodes. Please specify as [length width height] for pad, and [innerRadius outterRadius height] for ring electrode.');
-                    end
-                    if strcmpi(elecType{i},'pad') && any(elecSize{i}(:,1) < elecSize{i}(:,2))
-                        error('For Pad electrodes, the width of the pad should not be bigger than its length. Please enter as [length width height]');
-                    end
-                    if strcmpi(elecType{i},'pad') && any(elecSize{i}(:,3) < 3)
-                        error('For Pad electrodes, the thickness should at least be 3 mm.');
-                    end
-                    if strcmpi(elecType{i},'pad') && any(elecSize{i}(:) > 80)
-                        warning('You''re placing large pad electrodes (one of its dimensions is bigger than 8 cm). For large pads, the size will not be exact in the model because they will be bent to fit the scalp surface.');
-                    end
-                    if strcmpi(elecType{i},'ring') && any(elecSize{i}(:,1) >= elecSize{i}(:,2))
-                        error('For Ring electrodes, the inner radius should be smaller than outter radius. Please enter as [innerRadius outterRadius height]');
-                    end
-                end
-            end
-        end
-    end
-    
-    if ~exist('elecOri','var')
-        if ~iscellstr(elecType)
-            if strcmpi(elecType,'pad')
-                elecOri = 'lr';
-            else
-                elecOri = [];
-            end
-        else
-            elecOri = cell(1,length(elecType));
-            for i=1:length(elecOri)
-                if strcmpi(elecType{i},'pad')
-                    elecOri{i} = 'lr';
-                else
-                    elecOri{i} = [];
-                end
-            end
-        end
-    else
-        if ~iscellstr(elecType)
-            if ~strcmpi(elecType,'pad')
-                warning('You''re not placing pad electrodes; customized orientation options will be ignored.');
-                elecOri = [];
-            else
-                if iscell(elecOri)
-                    allChar = 1;
-                    for i=1:length(elecOri)
-                        if ~ischar(elecOri{i})
-                            warning('Looks like you''re only placing pad electrodes. ROAST will only use the 1st entry of the cell array of ''elecOri''. If this is not what you want and you meant differect orientations for different pad electrodes, just enter ''elecOri'' option as an N-by-3 matrix, or as a cell array of length N (put ''lr'', ''ap'', or ''si'' into the cell element), where N is number of pad electrodes to be placed.');
-                            elecOri = elecOri{1};
-                            allChar = 0;
-                            break;
-                        end
-                    end
-                    if allChar && length(elecOri)~=length(elecName)
-                        error('You want different orientations for each pad electrode by using pre-defined keywords in a cell array. Please make sure the cell array has a length equal to the number of pad electrodes.');
-                    end
-                end
-                if ~iscell(elecOri)
-                    if ischar(elecOri)
-                        if ~any(strcmpi(elecOri,{'lr','ap','si'}))
-                            error('Unrecognized pad orientation. Please enter ''lr'', ''ap'', or ''si'' for pad orientation; or just enter the direction vector of the long axis of the pad');
-                        end
-                    else
-                        if size(elecOri,2)~=3
-                            error('Unrecognized pad orientation. Please enter ''lr'', ''ap'', or ''si'' for pad orientation; or just enter the direction vector of the long axis of the pad');
-                        end
-                        if size(elecOri,1)>1 && size(elecOri,1)~=length(elecName)
-                            error('You want different orientations for each pad electrode. Please tell ROAST the orientation for each pad respectively, in a N-by-3 matrix, where N is the number of pads to be placed.');
-                        end
-                    end
-                end
-            end
-        else
-            if ~iscell(elecOri)
-                elecOri0 = elecOri;
-                elecOri = cell(1,length(elecType));
-                if ischar(elecOri0)
-                    if ~any(strcmpi(elecOri0,{'lr','ap','si'}))
-                        error('Unrecognized pad orientation. Please enter ''lr'', ''ap'', or ''si'' for pad orientation; or just enter the direction vector of the long axis of the pad');
-                    end
-                    for i=1:length(elecType)
-                        if strcmpi(elecType{i},'pad')
-                            elecOri{i} = elecOri0;
-                        else
-                            elecOri{i} = [];
-                        end
-                    end
-                else
-                    if size(elecOri0,2)~=3
-                        error('Unrecognized pad orientation. Please enter ''lr'', ''ap'', or ''si'' for pad orientation; or just enter the direction vector of the long axis of the pad');
-                    end
-                    numPad = 0;
-                    for i=1:length(elecType)
-                        if strcmpi(elecType{i},'pad')
-                            numPad = numPad+1;
-                        end
-                    end
-                    if size(elecOri0,1)>1
-                        if size(elecOri0,1)~=numPad
-                            error('You want different orientations for each pad electrode. Please tell ROAST the orientation for each pad respectively, in a N-by-3 matrix, where N is the number of pads to be placed.');
-                        end
-                    else
-                        elecOri0 = repmat(elecOri0,numPad,1);
-                    end
-                    i0=1;
-                    for i=1:length(elecType)
-                        if strcmpi(elecType{i},'pad')
-                            elecOri{i} = elecOri0(i0,:);
-                            i0 = i0+1;
-                        else
-                            elecOri{i} = [];
-                        end
-                    end
-                end
-            else
-                if length(elecOri)~=length(elecType)
-                    error('You want to place another type of electrodes aside from pad. Please tell ROAST the orienation for each electrode respectively, as the value for option ''elecOri'', in a cell array of length equals to the number of electrodes to be placed (put [] for non-pad electrodes).');
-                end
-                for i=1:length(elecOri)
-                    if strcmpi(elecType{i},'pad')
-                        if isempty(elecOri{i})
-                            elecOri{i} = 'lr';
-                        else
-                            if ischar(elecOri{i})
-                                if ~any(strcmpi(elecOri{i},{'lr','ap','si'}))
-                                    error('Unrecognized pad orientation. Please enter ''lr'', ''ap'', or ''si'' for pad orientation; or just enter the direction vector of the long axis of the pad');
-                                end
-                            else
-                                if size(elecOri{i},2)~=3
-                                    error('Unrecognized pad orientation. Please enter ''lr'', ''ap'', or ''si'' for pad orientation; or just enter the direction vector of the long axis of the pad');
-                                end
-                                if size(elecOri{i},1)>1
-                                    error('You''re placing more than 1 type of electrodes. Please put orientation info for each pad electrode as a 1-by-3 vector or one of the three keywords ''lr'', ''ap'', or ''si'' in a cell array for option ''elecOri''.');
-                                end
-                            end
-                        end
-                    else
-                        %                     warning('You''re not placing pad electrodes; customized orientation options will be ignored.');
-                        elecOri{i} = [];
-                    end
-                end
-            end
-        end
-    end
-    
-    elecPara = struct('capType',capType,'elecType',elecType,...
-        'elecSize',elecSize,'elecOri',elecOri);
-    
+% Pull into own variables for further custom-error-checking:   
+capType = options.capType;
+elecType = options.elecType;
+elecSize = options.elecSize;
+elecOri = options.elecOri;
+meshOptions = options.meshOptions;
+if strlength(options.simulationTag) == 0
+    uniqueTag = [];
 else
-    
-    fid = fopen('./elec72.loc'); C = textscan(fid,'%d %f %f %s'); fclose(fid);
-    elecName = C{4}; for i=1:length(elecName), elecName{i} = strrep(elecName{i},'.',''); end
-    capType = '1010';
-    elecType = 'disc';
-    elecSize = [6 2];
-    elecOri = [];
-    
-    elecPara = struct('capType',capType,'elecType',elecType,...
-        'elecSize',elecSize,'elecOri',elecOri);
-    
+    uniqueTag = options.simulationTag;
 end
+resampling = options.resampling;
+zeroPadding = options.zeroPadding;
+conductivities = options.conductivities;
+voxSize = options.voxSize;
 
-if ~exist('T2','var')
-    T2 = [];
+[elecPara, elecName, injectCurrent] = ...
+    parse_electrode_parameters(recipe, capType, elecType, elecSize, elecOri);
+
+if ~isempty(options.T2)
+    if isstring(options.T2) || ischar(options.T2)
+        if exist(options.T2,'file')==0
+            error("The T2 MRI filename you provided (%s) does not exist.", options.T2);
+        else
+            T2 = load_untouch_nii(options.T2);
+            if T2.hdr.hist.qoffset_x == 0 && T2.hdr.hist.srow_x(4)==0
+                error('The MRI has a bad header. SPM cannot generate the segmentation properly for MRI with bad header. You can manually align the MRI in SPM Display function to fix the header.');
+            end
+        end
+    else
+        T2 = options.T2;
+    end
 else
-    if ~exist(T2,'file'), error(['The T2 MRI you provided ' T2 ' does not exist.']); end
-    
-    t2Data = load_untouch_nii(T2);
-    if t2Data.hdr.hist.qoffset_x == 0 && t2Data.hdr.hist.srow_x(4)==0
-        error('The MRI has a bad header. SPM cannot generate the segmentation properly for MRI with bad header. You can manually align the MRI in SPM Display function to fix the header.');
-    end
-    % check if bad MRI header    
+    T2 = options.T2;
 end
+   
 
-% if any(~strcmpi(recipe,'leadfield'))
-    
-    if ~exist('meshOpt','var')
-%         meshOpt = struct('radbound',5,'angbound',30,'distbound',0.4,'reratio',3,'maxvol',10);
-          meshOpt = struct('radbound',5,'angbound',30,'distbound',0.3,'reratio',3,'maxvol',10);
-          % mesh option defaults changed for higher-resolution mesh in version 3
-%         meshOpt = struct('radbound',3,'angbound',30,'distbound',0.3,'reratio',3,'maxvol',5);
-    else
-        if ~isstruct(meshOpt), error('Unrecognized format of mesh options. Please enter as a structure, with field names as ''radbound'', ''angbound'', ''distbound'', ''reratio'', and ''maxvol''. Please refer to the iso2mesh documentation for more details.'); end
-        meshOptNam = fieldnames(meshOpt);
-        if isempty(meshOptNam) || ~all(ismember(meshOptNam,{'radbound';'angbound';'distbound';'reratio';'maxvol'}))
-            error('Unrecognized mesh options detected. Supported mesh options are ''radbound'', ''angbound'', ''distbound'', ''reratio'', and ''maxvol''. Please refer to the iso2mesh documentation for more details.');
-        end
-        if ~isfield(meshOpt,'radbound')
-            meshOpt.radbound = 5;
-        else
-            if ~isnumeric(meshOpt.radbound) || meshOpt.radbound<=0
-                error('Please enter a positive number for the mesh option ''radbound''.');
-            end
-        end
-        if ~isfield(meshOpt,'angbound')
-            meshOpt.angbound = 30;
-        else
-            if ~isnumeric(meshOpt.angbound) || meshOpt.angbound<=0
-                error('Please enter a positive number for the mesh option ''angbound''.');
-            end
-        end
-        if ~isfield(meshOpt,'distbound')
-            meshOpt.distbound = 0.3;
-        else
-            if ~isnumeric(meshOpt.distbound) || meshOpt.distbound<=0
-                error('Please enter a positive number for the mesh option ''distbound''.');
-            end
-        end
-        if ~isfield(meshOpt,'reratio')
-            meshOpt.reratio = 3;
-        else
-            if ~isnumeric(meshOpt.reratio) || meshOpt.reratio<=0
-                error('Please enter a positive number for the mesh option ''reratio''.');
-            end
-        end
-        if ~isfield(meshOpt,'maxvol')
-            meshOpt.maxvol = 10;
-        else
-            if ~isnumeric(meshOpt.maxvol) || meshOpt.maxvol<=0
-                error('Please enter a positive number for the mesh option ''maxvol''.');
-            end
-        end
-        warning('You''re changing the advanced options of ROAST. Unless you know what you''re doing, please keep mesh options default.');
-    end
-    
-% else
-%     
-% end
-
-if ~exist('simTag','var'), simTag = []; end
-
-if ~exist('doResamp','var')
-    doResamp = 0;
-else
-    if ~ischar(doResamp), error('Unrecognized option value. Please enter ''on'' or ''off'' for option ''resampling''.'); end
-    if strcmpi(doResamp,'off')
-        doResamp = 0;
-    elseif strcmpi(doResamp,'on')
-        doResamp = 1;
-    else
-        error('Unrecognized option value. Please enter ''on'' or ''off'' for option ''resampling''.');
-    end
-end
-
-if ~exist('paddingAmt','var')
-    paddingAmt = 0;
-else
-    if paddingAmt<=0 || mod(paddingAmt,1)~=0
-        error('Unrecognized option value. Please enter positive integer value for option ''zeroPadding''. A recommended value is 10.');
-    end
-end
-
-if ~exist('conductivities','var')
-    conductivities = struct('white',0.126,'gray',0.276,'csf',1.65,'bone',0.01,...
-                           'skin',0.465,'air',2.5e-14,'gel',0.3,'electrode',5.9e7); % literature values
-else
-    if ~isstruct(conductivities), error('Unrecognized format of conductivity values. Please enter as a structure, with field names as ''white'', ''gray'', ''csf'', ''bone'', ''skin'', ''air'', ''gel'' and ''electrode''.'); end
-    conductivitiesNam = fieldnames(conductivities);
-    if isempty(conductivitiesNam) || ~all(ismember(conductivitiesNam,{'white';'gray';'csf';'bone';'skin';'air';'gel';'electrode'}))
-        error('Unrecognized tissue names detected. Supported tissue names in the conductivity option are ''white'', ''gray'', ''csf'', ''bone'', ''skin'', ''air'', ''gel'' and ''electrode''.');
-    end
-    if ~isfield(conductivities,'white')
-        conductivities.white = 0.126;
-    else
-        if ~isnumeric(conductivities.white) || any(conductivities.white(:)<=0)
-            error('Please enter a positive number for the white matter conductivity.');
-        end
-        if length(conductivities.white(:))>1, error('Tensor conductivity not supported by ROAST. Please enter a scalar value for conductivity.'); end
-    end
-    if ~isfield(conductivities,'gray')
-        conductivities.gray = 0.276;
-    else
-        if ~isnumeric(conductivities.gray) || any(conductivities.gray(:)<=0)
-            error('Please enter a positive number for the gray matter conductivity.');
-        end
-        if length(conductivities.gray(:))>1, error('Tensor conductivity not supported by ROAST. Please enter a scalar value for conductivity.'); end
-    end
-    if ~isfield(conductivities,'csf')
-        conductivities.csf = 1.65;
-    else
-        if ~isnumeric(conductivities.csf) || any(conductivities.csf(:)<=0)
-            error('Please enter a positive number for the CSF conductivity.');
-        end
-        if length(conductivities.csf(:))>1, error('Tensor conductivity not supported by ROAST. Please enter a scalar value for conductivity.'); end
-    end
-    if ~isfield(conductivities,'bone')
-        conductivities.bone = 0.01;
-    else
-        if ~isnumeric(conductivities.bone) || any(conductivities.bone(:)<=0)
-            error('Please enter a positive number for the bone conductivity.');
-        end
-        if length(conductivities.bone(:))>1, error('Tensor conductivity not supported by ROAST. Please enter a scalar value for conductivity.'); end
-    end
-    if ~isfield(conductivities,'skin')
-        conductivities.skin = 0.465;
-    else
-        if ~isnumeric(conductivities.skin) || any(conductivities.skin(:)<=0)
-            error('Please enter a positive number for the skin conductivity.');
-        end
-        if length(conductivities.skin(:))>1, error('Tensor conductivity not supported by ROAST. Please enter a scalar value for conductivity.'); end
-    end
-    if ~isfield(conductivities,'air')
-        conductivities.air = 2.5e-14;
-    else
-        if ~isnumeric(conductivities.air) || any(conductivities.air(:)<=0)
-            error('Please enter a positive number for the air conductivity.');
-        end
-        if length(conductivities.air(:))>1, error('Tensor conductivity not supported by ROAST. Please enter a scalar value for conductivity.'); end
-    end
-    if ~isfield(conductivities,'gel')
-        conductivities.gel = 0.3;
-    else
-        if ~isnumeric(conductivities.gel) || any(conductivities.gel(:)<=0)
-            error('Please enter a positive number for the gel conductivity.');
-        end
-        if length(conductivities.gel(:))>1 && length(conductivities.gel(:))~=length(elecName)
-           error('You want to assign different conductivities to the conducting media under different electrodes, but didn''t tell ROAST clearly which conductivity each electrode should use. Please follow the order of electrodes you put in ''recipe'' to give each of them the corresponding conductivity in a vector as the value for the ''gel'' field in option ''conductivities''.');
-        end
-    end
-    if ~isfield(conductivities,'electrode')
-        conductivities.electrode = 5.9e7;
-    else
-        if ~isnumeric(conductivities.electrode) || any(conductivities.electrode(:)<=0)
-            error('Please enter a positive number for the electrode conductivity.');
-        end
-        if length(conductivities.electrode(:))>1 && length(conductivities.electrode(:))~=length(elecName)
-           error('You want to assign different conductivities to different electrodes, but didn''t tell ROAST clearly which conductivity each electrode should use. Please follow the order of electrodes you put in ''recipe'' to give each of them the corresponding conductivity in a vector as the value for the ''electrode'' field in option ''conductivities''.');
-        end
-    end
-    warning('You''re changing the advanced options of ROAST. Unless you know what you''re doing, please keep conductivity values default.');
-end
-
-if length(conductivities.gel(:))==1
-    conductivities.gel = repmat(conductivities.gel,1,length(elecName));
-end
-if length(conductivities.electrode(:))==1
-    conductivities.electrode = repmat(conductivities.electrode,1,length(elecName));
-end
+meshOptions = error_check_mesh_options(meshOptions, ...
+    'SuppressWarning', options.suppressMeshParameterWarning);
+conductivities = error_check_conductivities(conductivities, numel(elecName), ...
+    'SuppressWarning', options.suppressConductivityParameterWarning);
 
 % preprocess MRI data
-if ~strcmpi(subj,'example/nyhead.nii') && ~strcmpi(subj, 'example/forrest.nii') % only when it's not NY head
+if ~strcmpi(subj,'example/nyhead.nii') && ~strcmpi(subj, 'example/forrest.nii') && ~strcmpi(subj, 'example/forrestLarge.nii') % only when it's not NY head
     
     t1Data = load_untouch_nii(subj);
     if t1Data.hdr.hist.qoffset_x == 0 && t1Data.hdr.hist.srow_x(4)==0
@@ -618,12 +179,12 @@ if ~strcmpi(subj,'example/nyhead.nii') && ~strcmpi(subj, 'example/forrest.nii') 
     end
     % check if bad MRI header
 
-    if any(t1Data.hdr.dime.pixdim(2:4)<0.8) && ~doResamp
+    if any(t1Data.hdr.dime.pixdim(2:4)<0.8) && ~resampling
         warning('The MRI has higher resolution (<0.8mm) in at least one direction. This will make the modeling process more computationally expensive and thus slower. If you wish to run faster using just 1-mm model, you can ask ROAST to re-sample the MRI into 1 mm first, by turning on the ''resampling'' option.');
     end
     % check if high-resolution MRI (< 0.8 mm in any direction)
     
-    if length(unique(t1Data.hdr.dime.pixdim(2:4)))>1 && ~doResamp
+    if length(unique(t1Data.hdr.dime.pixdim(2:4)))>1 && ~resampling
         warning('The MRI has anisotropic resolution. It is highly recommended that you turn on the ''resampling'' option, as the electrode size will not be exact if the model is built from an MRI with anisotropic resolution.');
     end
     % check if anisotropic resolution MRI
@@ -632,10 +193,10 @@ if ~strcmpi(subj,'example/nyhead.nii') && ~strcmpi(subj, 'example/forrest.nii') 
     % check if in non-RAS orientation, and if yes, put it into RAS
     
 %     [subjRasRS,doResamp] = resampToOneMM(subjRas,doResamp);    
-    [subjRasRS,doResamp] = resampMesh(subjRas,doResamp,voxSize);
+    [subjRasRS,resampling] = resampMesh(subjRas,resampling,voxSize);
     
-    if paddingAmt>0
-        subjRasRSPD = zeroPadding(subjRasRS,paddingAmt);
+    if zeroPadding>0
+        subjRasRSPD = zeroPadding(subjRasRS,zeroPadding);
     else
         subjRasRSPD = subjRasRS;
     end
@@ -653,19 +214,19 @@ else
         
         isNonRAS = 0; % New York head is in RAS
         
-        if doResamp
+        if resampling
             error('The beauty of New York head is its 0.5 mm resolution. It''s a bad practice to resample it into 1 mm. Use another head ''example/MNI152_T1_1mm.nii'' for 1 mm model.');
         end
         
-        if paddingAmt>0
-            zeroPadding('example/nyhead_T1orT2_masks.nii',paddingAmt);
-            subjRasRSPD = ['example/nyhead_padded' num2str(paddingAmt) '.nii'];
-            if ~exist(['example/nyhead_padded' num2str(paddingAmt) '_T1orT2_seg8.mat'],'file')
+        if zeroPadding>0
+            zeroPadding('example/nyhead_T1orT2_masks.nii',zeroPadding);
+            subjRasRSPD = ['example/nyhead_padded' num2str(zeroPadding) '.nii'];
+            if ~exist(['example/nyhead_padded' num2str(zeroPadding) '_T1orT2_seg8.mat'],'file')
                 load('example/nyhead_T1orT2_seg8.mat','image','tpm','Affine');
                 origin = inv(image.mat)*[0;0;0;1];
-                origin = origin(1:3) + paddingAmt;
+                origin = origin(1:3) + zeroPadding;
                 image.mat(1:3,4) = [-dot(origin,image.mat(1,1:3));-dot(origin,image.mat(2,1:3));-dot(origin,image.mat(3,1:3))];
-                save(['example/nyhead_padded' num2str(paddingAmt) '_T1orT2_seg8.mat'],'image','tpm','Affine');
+                save(['example/nyhead_padded' num2str(zeroPadding) '_T1orT2_seg8.mat'],'image','tpm','Affine');
             end
         else
             subjRasRSPD = subj;
@@ -677,15 +238,15 @@ else
         end
     else
         isNonRAS = 0;
-        if paddingAmt>0
-            zeroPadding('example/forrest.nii',paddingAmt);
-            subjRasRSPD = ['example/forrest_padded' num2str(paddingAmt) '.nii'];
-            if ~exist(['example/forrest_padded' num2str(paddingAmt) '_T1orT2_seg8.mat'],'file')
+        if zeroPadding>0
+            zeroPadding('example/forrest.nii',zeroPadding);
+            subjRasRSPD = ['example/forrest_padded' num2str(zeroPadding) '.nii'];
+            if ~exist(['example/forrest_padded' num2str(zeroPadding) '_T1orT2_seg8.mat'],'file')
                 load('example/forrest_T1orT2_seg8.mat','image','tpm','Affine');
                 origin = inv(image.mat)*[0;0;0;1];
-                origin = origin(1:3) + paddingAmt;
+                origin = origin(1:3) + zeroPadding;
                 image.mat(1:3,4) = [-dot(origin,image.mat(1,1:3));-dot(origin,image.mat(2,1:3));-dot(origin,image.mat(3,1:3))];
-                save(['example/forrest_padded' num2str(paddingAmt) '_T1orT2_seg8.mat'],'image','tpm','Affine');
+                save(['example/forrest_padded' num2str(zeroPadding) '_T1orT2_seg8.mat'],'image','tpm','Affine');
             end
         else
             subjRasRSPD = subj;
@@ -735,7 +296,7 @@ else
     error('Something is wrong!');
 end
 
-options = struct('configTxt',configTxt,'elecPara',elecPara,'T2',T2,'meshOpt',meshOpt,'conductivities',conductivities,'uniqueTag',simTag,'resamp',doResamp,'zeroPad',paddingAmt,'isNonRAS',isNonRAS);
+opts = struct('configTxt',configTxt,'elecPara',elecPara,'T2',T2,'meshOpt',meshOptions,'conductivities',conductivities,'uniqueTag',uniqueTag,'resamp',resampling,'zeroPad',zeroPadding,'isNonRAS',isNonRAS,'customElectrodesTag',options.customElectrodesTag);
 
 % log tracking
 [dirname,baseFilename] = fileparts(subj);
@@ -743,24 +304,24 @@ if isempty(dirname), dirname = pwd; end
 
 Sopt = dir([dirname filesep baseFilename '_*_roastOptions.mat']);
 if isempty(Sopt)
-    options = writeRoastLog(subj,options,'roast');
+    opts = writeRoastLog(subj,opts,'roast');
 else
     isNew = zeros(length(Sopt),1);
     for i=1:length(Sopt)
         load([dirname filesep Sopt(i).name],'opt');
-        isNew(i) = isNewOptions(options,opt,'roast');
+        isNew(i) = isNewOptions(opts,opt,'roast');
     end
     if all(isNew)
-        options = writeRoastLog(subj,options,'roast');
+        opts = writeRoastLog(subj,opts,'roast');
     else
         load([dirname filesep Sopt(find(~isNew)).name],'opt');
-        if ~isempty(options.uniqueTag) && ~strcmp(options.uniqueTag,opt.uniqueTag)
-            warning(['The simulation with the same options has been run before under tag ''' opt.uniqueTag '''. The new tag you specified ''' options.uniqueTag ''' will be ignored.']);
+        if ~isempty(opts.uniqueTag) && ~strcmp(opts.uniqueTag,opt.uniqueTag)
+            warning(['The simulation with the same options has been run before under tag ''' opt.uniqueTag '''. The new tag you specified ''' opts.uniqueTag ''' will be ignored.']);
         end
-        options.uniqueTag = opt.uniqueTag;
+        opts.uniqueTag = opt.uniqueTag;
     end
 end
-uniqueTag = options.uniqueTag;
+uniqueTag = opts.uniqueTag;
 
 fprintf('\n');
 disp('======================================================')
@@ -768,6 +329,8 @@ if strcmp(baseFilename,'nyhead')
     disp('ROAST New York head')
 elseif strcmp(baseFilename, 'forrest')
     disp('ROAST Forrest NHP head');
+elseif strcmp(baseFilename, 'forrestLarge')
+    disp('ROAST Forrest LARGE ELECTRODE model');
 else
     disp(['ROAST ' subj])
 end
@@ -798,7 +361,7 @@ if all(strcmpi(recipe,'leadfield'))
     end
 end
 
-if ~(strcmp(baseFilename,'nyhead') || strcmp(baseFilename, 'forrest'))
+if ~(strcmp(baseFilename,'nyhead') || strcmp(baseFilename, 'forrest') || strcmp(baseFilename, 'forrestLarge'))
     
     [~,baseFilenameRasRSPD] = fileparts(subjRasRSPD);
     
@@ -840,7 +403,7 @@ if ~exist([dirname filesep baseFilename '_' uniqueTag '_mask_elec.nii'],'file')
     disp('======================================================')
     disp('      STEP 3 (out of 6): ELECTRODE PLACEMENT...       ')
     disp('======================================================')
-    hdrInfo = electrodePlacement(subj,subjRasRSPD,T2,elecName,options,uniqueTag);
+    hdrInfo = electrodePlacement(subj,subjRasRSPD,T2,elecName,opts,uniqueTag);
 else
     disp('======================================================')
     disp('         ELECTRODE ALREADY PLACED, SKIP STEP 3        ')
@@ -853,7 +416,7 @@ if ~exist([dirname filesep baseFilename '_' uniqueTag '.mat'],'file')
     disp('======================================================')
     disp('        STEP 4 (out of 6): MESH GENERATION...         ')
     disp('======================================================')
-    [node,elem,face] = meshByIso2mesh(subj,subjRasRSPD,T2,meshOpt,hdrInfo,uniqueTag);
+    [node,elem,face] = meshByIso2mesh(subj,subjRasRSPD,T2,meshOptions,hdrInfo,uniqueTag);
 else
     disp('======================================================')
     disp('          MESH ALREADY GENERATED, SKIP STEP 4         ')

@@ -82,9 +82,13 @@ end
 cmd=sprintf(['"%s%s" "%s" "%s" %f %f %f %f ' format_maxvol ' %d'],mcpath('cgalmesh'),exesuff,...
     mwpath('pre_cgalmesh.inr'),mwpath('post_cgalmesh.mesh'),ang,ssize,...
     approx,reratio,maxvol,randseed);
-system(cmd);
+[status,cmdout] = system(cmd);
+fprintf(1,'\ncgalmesh.exe finished with status %d\n', status);
+if strlength(cmdout) > 0
+    fprintf(1,'<strong>CMD OUTPUT</strong>\n\t>>\t%s\n\n',cmdout);
+end
 if(~exist(mwpath('post_cgalmesh.mesh'),'file'))
-    error(['output file was not found, failure was encountered when running command: \n',cmd]);
+    error('Output file was not found, failure was encountered when running command:\n>>%s',cmd);
 end
 [node,elem,face]=readmedit(mwpath('post_cgalmesh.mesh'));
 

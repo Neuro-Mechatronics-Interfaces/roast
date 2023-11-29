@@ -26,23 +26,25 @@ else
     baseFilenameRasRSPD = [baseFilenameRasRSPD '_T1andT2'];
 end
 
-mappingFile = [dirname filesep baseFilenameRasRSPD '_seg8.mat'];
-if ~exist(mappingFile,'file')
-    error(['Mapping file ' mappingFile ' from SPM not found. Please check if you run through SPM segmentation in ROAST.']);
-else
-    load(mappingFile,'image','Affine');
-    mri2mni = Affine*image(1).mat;
-    % mapping from MRI voxel space to MNI space
-end
+% mappingFile = [dirname filesep baseFilenameRasRSPD '_seg8.mat'];
+% if ~exist(mappingFile,'file')
+%     error(['Mapping file ' mappingFile ' from SPM not found. Please check if you run through SPM segmentation in ROAST.']);
+% else
+%     load(mappingFile,'image','Affine');
+%     mri2mni = Affine*image(1).mat;
+%     % mapping from MRI voxel space to MNI space
+% end
 
 if showAll    
     if ~strcmp(baseFilename,'nyhead')
         disp('showing MRI and segmentations...');
-        data = load_untouch_nii(P2); sliceshow(data.img,[],'gray',[],[],'MRI: Click anywhere to navigate.',[],mri2mni); drawnow
-        
+%         data = load_untouch_nii(P2); sliceshow(data.img,[],'gray',[],[],'MRI: Click anywhere to navigate.',[],mri2mni); drawnow
+        data = load_untouch_nii(P2); sliceshow(data.img,[],'gray',[],[],'MRI: Click anywhere to navigate.'); drawnow;
+
         if ~isempty(T2) %T2 specified
             data = load_untouch_nii(T2);
-            sliceshow(data.img,[],'gray',[],[],'MRI: T2. Click anywhere to navigate.',[],mri2mni); drawnow
+%             sliceshow(data.img,[],'gray',[],[],'MRI: T2. Click anywhere to navigate.',[],mri2mni); drawnow
+            sliceshow(data.img,[],'gray',[],[],'MRI: T2. Click anywhere to navigate.'); drawnow;
         end
     else
         disp('NEW YORK HEAD selected, there is NO MRI for it to show.')
@@ -52,6 +54,7 @@ end
 masks = load_untouch_nii([dirname filesep baseFilenameRasRSPD '_masks.nii']);
 allMask = masks.img;
 numOfTissue = 6; % hard coded across ROAST.  max(allMask(:));
+
 if isRoast
     gel = load_untouch_nii([dirname filesep baseFilename '_' uniTag '_mask_gel.nii']);
     numOfGel = max(gel.img(:));
@@ -66,7 +69,8 @@ if showAll
     allMaskShow = masks.img;
     allMaskShow(gel.img>0) = numOfTissue + 1;
     allMaskShow(elec.img>0) = numOfTissue + 2;
-    sliceshow(allMaskShow,[],[],[],'Tissue index','Segmentation. Click anywhere to navigate.',[],mri2mni)
+    sliceshow(allMaskShow,[],[],[],'Tissue index','Segmentation. Click anywhere to navigate.');
+%     sliceshow(allMaskShow,[],[],[],'Tissue index','Segmentation. Click anywhere to navigate.',[],mri2mni)
     drawnow
 end
 
@@ -239,7 +243,8 @@ cm = colormap(jet(2^11)); cm = [1 1 1;cm];
 
 if isRoast
     figName = ['Voltage in Simulation: ' uniTag];
-    sliceshow(vol_all.*nan_mask_brain,[],cm,[],'Voltage (mV)',[figName '. Click anywhere to navigate.'],[],mri2mni); drawnow
+%     sliceshow(vol_all.*nan_mask_brain,[],cm,[],'Voltage (mV)',[figName '. Click anywhere to navigate.'],[],mri2mni); drawnow
+    sliceshow(vol_all.*nan_mask_brain,[],cm,[],'Voltage (mV)',[figName '. Click anywhere to navigate.']); drawnow;
 end
 
 for i=1:size(ef_all,4), ef_all(:,:,:,i) = ef_all(:,:,:,i).*nan_mask_brain; end
@@ -247,11 +252,13 @@ ef_mag = ef_mag.*nan_mask_brain;
 dataShowVal = ef_mag(~isnan(ef_mag(:)));
 if isRoast
     figName = ['Electric field in Simulation: ' uniTag];
-    sliceshow(ef_mag,[],cm,[min(dataShowVal) prctile(dataShowVal,95)],'Electric field (V/m)',[figName '. Click anywhere to navigate.'],ef_all,mri2mni); drawnow
+%     sliceshow(ef_mag,[],cm,[min(dataShowVal) prctile(dataShowVal,95)],'Electric field (V/m)',[figName '. Click anywhere to navigate.'],ef_all,mri2mni); drawnow
+    sliceshow(ef_mag,[],cm,[min(dataShowVal) prctile(dataShowVal,95)],'Electric field (V/m)',[figName '. Click anywhere to navigate.'],ef_all); drawnow;
 else
     
     for i=1:size(targetCoord,1)
         figName = ['Electric field at Target ' num2str(i) ' in Targeting: ' uniTag];
-        sliceshow(ef_mag,targetCoord(i,:),cm,[min(dataShowVal) prctile(dataShowVal,95)],'Electric field (V/m)',[figName '. Click anywhere to navigate.'],ef_all,mri2mni); drawnow
+        sliceshow(ef_mag,targetCoord(i,:),cm,[min(dataShowVal) prctile(dataShowVal,95)],'Electric field (V/m)',[figName '. Click anywhere to navigate.'],ef_all); drawnow;
+%         sliceshow(ef_mag,targetCoord(i,:),cm,[min(dataShowVal) prctile(dataShowVal,95)],'Electric field (V/m)',[figName '. Click anywhere to navigate.'],ef_all,mri2mni); drawnow
     end
 end
