@@ -21,6 +21,7 @@ function roast(subj,recipe,options)
 %     options.suppressMeshParameterWarning (1,1) logical = false;
 %     options.suppressConductivityParameterWarning (1,1) logical = false;
 %     options.customElectrodesTag (1,:) char = 'customLocations';
+%     options.visualizeResult (1,1) logical = true;
 %
 % Description:
 % Main function of ROAST.
@@ -96,6 +97,7 @@ arguments
     options.suppressMeshParameterWarning (1,1) logical = false;
     options.suppressConductivityParameterWarning (1,1) logical = false;
     options.customElectrodesTag (1,:) char = 'customLocations';
+    options.visualizeResult (1,1) logical = true;
 end
 
 fprintf('\n\n');
@@ -296,7 +298,16 @@ else
     error('Something is wrong!');
 end
 
-opts = struct('configTxt',configTxt,'elecPara',elecPara,'T2',T2,'meshOpt',meshOptions,'conductivities',conductivities,'uniqueTag',uniqueTag,'resamp',resampling,'zeroPad',zeroPadding,'isNonRAS',isNonRAS,'customElectrodesTag',options.customElectrodesTag);
+opts = struct('configTxt',configTxt, ...
+              'elecPara',elecPara, ...
+              'T2',T2, ...
+              'meshOpt',meshOptions, ...
+              'conductivities',conductivities, ...
+              'uniqueTag',uniqueTag, ...
+              'resamp',resampling, ...
+              'zeroPad',zeroPadding, ...
+              'isNonRAS',isNonRAS, ...
+              'customElectrodesTag',options.customElectrodesTag);
 
 % log tracking
 [dirname,baseFilename] = fileparts(subj);
@@ -321,7 +332,7 @@ else
         opts.uniqueTag = opt.uniqueTag;
     end
 end
-uniqueTag = opts.uniqueTag;
+% uniqueTag = opts.uniqueTag;
 
 fprintf('\n');
 disp('======================================================')
@@ -441,11 +452,17 @@ if any(~strcmpi(recipe,'leadfield'))
     end
     
     if ~exist([dirname filesep baseFilename '_' uniqueTag '_roastResult.mat'],'file')
-        disp('======================================================')
-        disp('STEP 6 (final step): SAVING AND VISUALIZING RESULTS...')
-        disp('======================================================')
-        [vol_all,ef_mag,ef_all] = postGetDP(subj,subjRasRSPD,node,hdrInfo,uniqueTag);
-        visualizeRes(subj,subjRasRSPD,T2,node,elem,face,injectCurrent,hdrInfo,uniqueTag,0,vol_all,ef_mag,ef_all);
+        if options.visualizeResult
+            disp('======================================================')
+            disp('STEP 6 (final step): SAVING AND VISUALIZING RESULTS...')
+            disp('======================================================')
+            [vol_all,ef_mag,ef_all] = postGetDP(subj,subjRasRSPD,node,hdrInfo,uniqueTag);
+            visualizeRes(subj,subjRasRSPD,T2,node,elem,face,injectCurrent,hdrInfo,uniqueTag,0,vol_all,ef_mag,ef_all);
+        else
+            disp('======================================================')
+            disp('STEP 6 (final step):            FORCE-SKIPPED!        ')
+            disp('======================================================')
+        end
     else
         disp('======================================================')
         disp('  ALL STEPS DONE, LOADING RESULTS FOR VISUALIZATION   ')

@@ -117,8 +117,7 @@ if isRoast
     dataShow = [node(:,1:3) color];
     
     figName = ['Voltage in Simulation: ' uniTag];
-    figure('Name',[figName '. Move your mouse to rotate.'],'NumberTitle','off');
-    set(gcf,'color','w');
+    figure('Name',[figName '. Move your mouse to rotate.'],'NumberTitle','off','Color','w');
     colormap(jet);
     plotmesh(dataShow,indNode_grayFace,indNode_grayElm,'LineStyle','none');
     dataShowRange = [min(dataShow(unique(indNode_grayElm(:)),4)) max(dataShow(unique(indNode_grayElm(:)),4))];
@@ -158,8 +157,7 @@ if isRoast
     dataShow = [node(:,1:3) color];
     
     figName = ['Electric field in Simulation: ' uniTag];
-    figure('Name',[figName '. Move your mouse to rotate.'],'NumberTitle','off');
-    set(gcf,'color','w');
+    figure('Name',[figName '. Move your mouse to rotate.'],'NumberTitle','off','Color','w');
     colormap(jet);
     plotmesh(dataShow,indNode_grayFace,indNode_grayElm,'LineStyle','none');
 %     dataShowVal = dataShow(unique(indNode_grayElm(:)),4);
@@ -200,8 +198,7 @@ else
     dataShow = [node(:,1:3) color];
     
     figName = ['Electric field in Targeting: ' uniTag];
-    figure('Name',[figName '. Move your mouse to rotate.'],'NumberTitle','off');
-    set(gcf,'color','w');
+    figure('Name',[figName '. Move your mouse to rotate.'],'NumberTitle','off','Color','w');
     colormap(jet);
     plotmesh(dataShow,indNode_grayFace,indNode_grayElm,'LineStyle','none');
 %     dataShowVal = dataShow(unique(indNode_grayElm(:)),4);
@@ -253,7 +250,8 @@ dataShowVal = ef_mag(~isnan(ef_mag(:)));
 if isRoast
     figName = ['Electric field in Simulation: ' uniTag];
 %     sliceshow(ef_mag,[],cm,[min(dataShowVal) prctile(dataShowVal,95)],'Electric field (V/m)',[figName '. Click anywhere to navigate.'],ef_all,mri2mni); drawnow
-    sliceshow(ef_mag,[],cm,[min(dataShowVal) prctile(dataShowVal,95)],'Electric field (V/m)',[figName '. Click anywhere to navigate.'],ef_all); drawnow;
+%     sliceshow(ef_mag,[],cm,[min(dataShowVal) prctile(dataShowVal,95)],'Electric field (V/m)',[figName '. Click anywhere to navigate.'],ef_all); drawnow;
+    sliceshow(ef_mag,[],cm,[10, 135],'Electric field (V/m)',[figName '. Click anywhere to navigate.'],ef_all); drawnow;
 else
     
     for i=1:size(targetCoord,1)

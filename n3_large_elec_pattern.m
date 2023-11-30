@@ -38,7 +38,7 @@ arguments
     % options.MeshOptions = struct('radbound',5,'angbound',30,'distbound',0.3,'reratio',3,'maxvol',10);
     % Custom Mesh Options:
     options.MeshOptions struct = struct('radbound',5,'angbound',30,'distbound',0.2,'reratio',3,'maxvol',4);
-    options.Tag {mustBeTextScalar} = "v2";
+    options.Tag {mustBeTextScalar} = "v3";
 end
 
 recipe = {'custom1', amp_scale, 'custom2', -amp_scale * options.ArrayReturnFraction, 'custom3', -amp_scale*(1-options.ArrayReturnFraction)};

@@ -89,7 +89,10 @@ else
 end
 
 % link the calback function to new figure
-fh = figure('WindowButtonDownFcn',@myCallback,'Name',figName,'NumberTitle','off');
+fh = figure('WindowButtonDownFcn',@myCallback, ...
+            'Name',figName, ...
+            'NumberTitle','off', ...
+            'Color', 'w');
 
 % store data as figure property
 set(fh,'UserData',mydata);

@@ -46,8 +46,9 @@ scalpFilled(:,:,1) = 0; scalpFilled(:,:,Nz) = 0; scalpFilled(:,1,:) = 0; scalpFi
 
 if isDebug
     figName = ['Electrode placement in Simulation: ' uniTag];
-    figure('Name',[figName '. Move your mouse to rotate.'],'NumberTitle','off');
-    set(gcf,'color','w');
+    fig = figure('Name',[figName '. Move your mouse to rotate.'],'NumberTitle','off');
+    set(fig,'Color','w','Position',fig.Position-[0 fig.Position(4) 0 0]);
+	figure(fig);
     plot3(scalpCleanSurf(:,1),scalpCleanSurf(:,2),scalpCleanSurf(:,3),'y.');
     hold on;
 end
